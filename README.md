@@ -25,8 +25,9 @@ Take a screenshot, paste the image into the app, mark it, copy it and the edited
 - **Moving around the canvas**
   - Zoom: scroll the mouse wheel (zooms toward the cursor).
   - Pan: hold the middle mouse button and drag.
+ 
 
-# License
+---
+
+### License
 SOURCE-AVAILABLE LICENSE (Non-Redistributable)
-
-Copyright (c) 2025-2026 Rév Oconner. All Rights Reserved.
