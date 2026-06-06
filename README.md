@@ -1,5 +1,6 @@
 # Documentation Image Helper
 A small utility to mark help write better user documentation steps - draw lines or shapes on images from clipboard and copy the final edit back to clipboard. 
+<img width="1964" height="1332" alt="image" src="https://github.com/user-attachments/assets/137b2c45-6647-43b4-8cdc-8ab748978f4c" />
 
 # Usage
 Take a screenshot, paste the image into the app, mark it, copy it and the edited image is ready for pasting.
