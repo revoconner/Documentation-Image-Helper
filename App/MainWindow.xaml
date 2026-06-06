@@ -1,12 +1,121 @@
-﻿<Window x:Class="App.MainWindow"
+<Window x:Class="DocumentationImageHelper.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:App"
+        xmlns:local="clr-namespace:DocumentationImageHelper"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
-    <Grid>
+        Title="Documentation Image Helper" Height="650" Width="1000"
+        Background="#1E1E1E"
+        KeyDown="OnWindowKeyDown">
 
-    </Grid>
+    <Window.Resources>
+        <!-- A thin vertical divider used to group toolbar sections. -->
+        <Style x:Key="ToolbarDivider" TargetType="Border">
+            <Setter Property="Width" Value="1"/>
+            <Setter Property="Background" Value="#3F3F46"/>
+            <Setter Property="Margin" Value="6,2"/>
+        </Style>
+        <Style TargetType="TextBlock" x:Key="ToolbarLabel">
+            <Setter Property="Foreground" Value="#DDDDDD"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="6,0,4,0"/>
+        </Style>
+    </Window.Resources>
+
+    <DockPanel>
+        <!-- Top toolbar -->
+        <Border DockPanel.Dock="Top" Background="#2D2D30" Padding="6"
+                BorderBrush="#3F3F46" BorderThickness="0,0,0,1">
+            <StackPanel Orientation="Horizontal">
+                <Button x:Name="PasteButton" Content="Paste" Click="OnPasteClick" Margin="2" Padding="8,4"/>
+                <Button x:Name="UndoButton" Content="Undo" Click="OnUndoClick" Margin="2" Padding="8,4"/>
+                <Button x:Name="RedoButton" Content="Redo" Click="OnRedoClick" Margin="2" Padding="8,4"/>
+
+                <Border Style="{StaticResource ToolbarDivider}"/>
+
+                <TextBlock Text="Color" Style="{StaticResource ToolbarLabel}"/>
+                <ComboBox x:Name="ColorCombo" Width="90" Margin="2" SelectedIndex="0"
+                          SelectionChanged="OnColorChanged" VerticalAlignment="Center">
+                    <ComboBoxItem Content="Red"/>
+                    <ComboBoxItem Content="Green"/>
+                    <ComboBoxItem Content="Blue"/>
+                    <ComboBoxItem Content="White"/>
+                    <ComboBoxItem Content="Black"/>
+                </ComboBox>
+
+                <TextBlock Text="Width" Style="{StaticResource ToolbarLabel}"/>
+                <Slider x:Name="SizeSlider" Width="120" Minimum="1" Maximum="72" Value="6"
+                        VerticalAlignment="Center" TickFrequency="1" IsSnapToTickEnabled="True"/>
+                <TextBlock Style="{StaticResource ToolbarLabel}"
+                           Text="{Binding ElementName=SizeSlider, Path=Value, StringFormat=N0}"/>
+
+                <TextBlock Text="Font" Style="{StaticResource ToolbarLabel}"/>
+                <ComboBox x:Name="FontSizeCombo" Width="60" Margin="2" SelectedIndex="6"
+                          VerticalAlignment="Center">
+                    <ComboBoxItem Content="8"/>
+                    <ComboBoxItem Content="10"/>
+                    <ComboBoxItem Content="12"/>
+                    <ComboBoxItem Content="14"/>
+                    <ComboBoxItem Content="16"/>
+                    <ComboBoxItem Content="20"/>
+                    <ComboBoxItem Content="24"/>
+                    <ComboBoxItem Content="28"/>
+                    <ComboBoxItem Content="32"/>
+                    <ComboBoxItem Content="40"/>
+                    <ComboBoxItem Content="48"/>
+                    <ComboBoxItem Content="64"/>
+                    <ComboBoxItem Content="72"/>
+                </ComboBox>
+
+                <Border Style="{StaticResource ToolbarDivider}"/>
+
+                <ToggleButton x:Name="TextTool" Content="Text" Tag="Text" Margin="2" Padding="8,4"
+                              Checked="OnToolChecked" Unchecked="OnToolUnchecked"/>
+                <ToggleButton x:Name="LineTool" Content="Line" Tag="Stroke" Margin="2" Padding="8,4"
+                              Checked="OnToolChecked" Unchecked="OnToolUnchecked"/>
+                <ToggleButton x:Name="RectTool" Content="Rectangle" Tag="Rectangle" Margin="2" Padding="8,4"
+                              Checked="OnToolChecked" Unchecked="OnToolUnchecked"/>
+                <ToggleButton x:Name="CircleTool" Content="Circle" Tag="Circle" Margin="2" Padding="8,4"
+                              Checked="OnToolChecked" Unchecked="OnToolUnchecked"/>
+                <ToggleButton x:Name="OvalTool" Content="Oval" Tag="Oval" Margin="2" Padding="8,4"
+                              Checked="OnToolChecked" Unchecked="OnToolUnchecked"/>
+                <ToggleButton x:Name="CropTool" Content="Crop" Tag="Crop" Margin="2" Padding="8,4"
+                              Checked="OnToolChecked" Unchecked="OnToolUnchecked"/>
+
+                <Border Style="{StaticResource ToolbarDivider}"/>
+
+                <Button x:Name="CopyButton" Content="Copy" Click="OnCopyClick" Margin="2" Padding="8,4"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Canvas area: scrollable, zoomable host containing the image and a drawing overlay -->
+        <Grid>
+            <ScrollViewer x:Name="Scroller" Background="#252526"
+                          HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"
+                          PreviewMouseWheel="OnScrollerPreviewMouseWheel"
+                          PreviewMouseDown="OnScrollerPreviewMouseDown"
+                          PreviewMouseMove="OnScrollerPreviewMouseMove"
+                          PreviewMouseUp="OnScrollerPreviewMouseUp">
+                <Grid x:Name="ZoomHost" HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <Grid.LayoutTransform>
+                        <ScaleTransform x:Name="Zoom" ScaleX="1" ScaleY="1"/>
+                    </Grid.LayoutTransform>
+
+                    <Image x:Name="ImageView" Stretch="None" SnapsToDevicePixels="True"
+                           RenderOptions.BitmapScalingMode="HighQuality"/>
+
+                    <Canvas x:Name="Overlay" Background="Transparent"
+                            MouseLeftButtonDown="OnOverlayMouseLeftButtonDown"
+                            MouseMove="OnOverlayMouseMove"
+                            MouseLeftButtonUp="OnOverlayMouseLeftButtonUp"/>
+                </Grid>
+            </ScrollViewer>
+
+            <TextBlock x:Name="Placeholder" Text="Paste an image (Ctrl+V) to begin"
+                       Foreground="#9E9E9E" FontSize="16"
+                       HorizontalAlignment="Center" VerticalAlignment="Center"
+                       IsHitTestVisible="False"/>
+        </Grid>
+    </DockPanel>
 </Window>
