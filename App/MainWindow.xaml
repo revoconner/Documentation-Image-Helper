@@ -7,6 +7,7 @@
         mc:Ignorable="d"
         Title="Documentation Image Helper" Height="650" Width="1120"
         Background="#1E1E1E"
+        Icon="pack://application:,,,/markup.ico"
         KeyDown="OnWindowKeyDown"
         KeyUp="OnWindowKeyUp">
 
@@ -29,9 +30,12 @@
         <Border DockPanel.Dock="Top" Background="#2D2D30" Padding="6"
                 BorderBrush="#3F3F46" BorderThickness="0,0,0,1">
             <WrapPanel Orientation="Horizontal" ItemHeight="32">
-                <Button x:Name="PasteButton" Content="Paste" Click="OnPasteClick" Margin="2" Padding="8,4"/>
-                <Button x:Name="UndoButton" Content="Undo" Click="OnUndoClick" Margin="2" Padding="8,4"/>
-                <Button x:Name="RedoButton" Content="Redo" Click="OnRedoClick" Margin="2" Padding="8,4"/>
+                <Button x:Name="PasteButton" Content="Paste" Click="OnPasteClick" Margin="2"/>
+
+                <Border Style="{StaticResource ToolbarDivider}"/>
+
+                <Button x:Name="UndoButton" Content="Undo" Click="OnUndoClick" Margin="2"/>
+                <Button x:Name="RedoButton" Content="Redo" Click="OnRedoClick" Margin="2"/>
 
                 <Border Style="{StaticResource ToolbarDivider}"/>
 
@@ -44,13 +48,16 @@
                     <ComboBoxItem Content="White"/>
                     <ComboBoxItem Content="Black"/>
                 </ComboBox>
-
                 <TextBlock Text="Width" Style="{StaticResource ToolbarLabel}"/>
                 <Slider x:Name="SizeSlider" Width="120" Minimum="1" Maximum="72" Value="6"
                         VerticalAlignment="Center" TickFrequency="1" IsSnapToTickEnabled="True"/>
                 <TextBlock Style="{StaticResource ToolbarLabel}"
                            Text="{Binding ElementName=SizeSlider, Path=Value, StringFormat=N0}"/>
 
+                <Border Style="{StaticResource ToolbarDivider}"/>
+
+                <ToggleButton x:Name="TextTool" Content="Text" Tag="Text" Margin="2"
+                              Checked="OnToolChecked" Unchecked="OnToolUnchecked"/>
                 <TextBlock Text="Font" Style="{StaticResource ToolbarLabel}"/>
                 <ComboBox x:Name="FontSizeCombo" Width="60" Margin="2" SelectedIndex="6"
                           VerticalAlignment="Center">
@@ -71,23 +78,24 @@
 
                 <Border Style="{StaticResource ToolbarDivider}"/>
 
-                <ToggleButton x:Name="TextTool" Content="Text" Tag="Text" Margin="2" Padding="8,4"
+                <ToggleButton x:Name="LineTool" Content="Line" Tag="Stroke" Margin="2"
                               Checked="OnToolChecked" Unchecked="OnToolUnchecked"/>
-                <ToggleButton x:Name="LineTool" Content="Line" Tag="Stroke" Margin="2" Padding="8,4"
+                <ToggleButton x:Name="RectTool" Content="Rectangle" Tag="Rectangle" Margin="2"
                               Checked="OnToolChecked" Unchecked="OnToolUnchecked"/>
-                <ToggleButton x:Name="RectTool" Content="Rectangle" Tag="Rectangle" Margin="2" Padding="8,4"
+                <ToggleButton x:Name="CircleTool" Content="Circle" Tag="Circle" Margin="2"
                               Checked="OnToolChecked" Unchecked="OnToolUnchecked"/>
-                <ToggleButton x:Name="CircleTool" Content="Circle" Tag="Circle" Margin="2" Padding="8,4"
-                              Checked="OnToolChecked" Unchecked="OnToolUnchecked"/>
-                <ToggleButton x:Name="OvalTool" Content="Oval" Tag="Oval" Margin="2" Padding="8,4"
-                              Checked="OnToolChecked" Unchecked="OnToolUnchecked"/>
-                <ToggleButton x:Name="CropTool" Content="Crop" Tag="Crop" Margin="2" Padding="8,4"
-                              Checked="OnToolChecked" Unchecked="OnToolUnchecked"/>
-                <ToggleButton x:Name="StepsTool" Content="Steps" Tag="Steps" Margin="2" Padding="8,4"
-                              Checked="OnToolChecked" Unchecked="OnToolUnchecked"/>
-                <ToggleButton x:Name="SnapLineTool" Content="Snap Line" Tag="SnapLine" Margin="2" Padding="8,4"
+                <ToggleButton x:Name="OvalTool" Content="Oval" Tag="Oval" Margin="2"
                               Checked="OnToolChecked" Unchecked="OnToolUnchecked"/>
 
+                <Border Style="{StaticResource ToolbarDivider}"/>
+
+                <ToggleButton x:Name="StepsTool" Content="Steps" Tag="Steps" Margin="2"
+                              Checked="OnToolChecked" Unchecked="OnToolUnchecked"/>
+
+                <Border Style="{StaticResource ToolbarDivider}"/>
+
+                <ToggleButton x:Name="SnapLineTool" Content="Snap Line" Tag="SnapLine" Margin="2"
+                              Checked="OnToolChecked" Unchecked="OnToolUnchecked"/>
                 <TextBlock Text="Snap" Style="{StaticResource ToolbarLabel}"/>
                 <ComboBox x:Name="SnapAngleCombo" Width="60" Margin="2" SelectedIndex="2"
                           VerticalAlignment="Center">
@@ -101,7 +109,12 @@
 
                 <Border Style="{StaticResource ToolbarDivider}"/>
 
-                <Button x:Name="CopyButton" Content="Copy" Click="OnCopyClick" Margin="2" Padding="8,4"/>
+                <ToggleButton x:Name="CropTool" Content="Crop" Tag="Crop" Margin="2"
+                              Checked="OnToolChecked" Unchecked="OnToolUnchecked"/>
+
+                <Border Style="{StaticResource ToolbarDivider}"/>
+
+                <Button x:Name="CopyButton" Content="Copy" Click="OnCopyClick" Margin="2"/>
             </WrapPanel>
         </Border>
 

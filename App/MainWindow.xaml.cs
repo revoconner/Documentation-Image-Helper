@@ -34,9 +34,9 @@ public partial class MainWindow : Window
     // Steps tool counter; incremented on each Shift+click, reset when Shift is released.
     private int _stepCounter;
 
-    // Snap line tool two-click state.
-    private Point? _snapAnchor;
-    private Line? _snapPreview;
+    // Snap line tool: confirmed vertices of the multi-segment line being built.
+    private readonly List<Point> _snapPoints = new();
+    private Polyline? _snapPolyline;
 
     // Middle-button panning state.
     private bool _panning;
@@ -182,10 +182,17 @@ public partial class MainWindow : Window
         if (_activeTextBox != null)
             return;
 
-        // Escape cancels a pending snap line.
+        // Escape cancels a pending snap line; Enter finishes it.
         if (e.Key == Key.Escape)
         {
             CancelSnapLine();
+            e.Handled = true;
+            return;
+        }
+
+        if (e.Key == Key.Enter && _tool == ToolType.SnapLine)
+        {
+            FinishSnapLine();
             e.Handled = true;
             return;
         }
@@ -243,7 +250,7 @@ public partial class MainWindow : Window
                 e.Handled = true;
                 return;
             case ToolType.SnapLine:
-                HandleSnapClick(point);
+                HandleSnapClick(point, e.ClickCount >= 2);
                 e.Handled = true;
                 return;
         }
@@ -259,13 +266,11 @@ public partial class MainWindow : Window
 
     private void OnOverlayMouseMove(object sender, MouseEventArgs e)
     {
-        // Snap line shows a live preview between its two clicks (no drag involved).
-        if (_tool == ToolType.SnapLine && _snapAnchor != null && _snapPreview != null)
+        // Snap line shows a live preview of the next segment as the cursor moves.
+        if (_tool == ToolType.SnapLine && _snapPoints.Count > 0 && _snapPolyline != null)
         {
             var target = ClampToImage(e.GetPosition(Overlay));
-            var end = SnapEndpoint(_snapAnchor.Value, target);
-            _snapPreview.X2 = end.X;
-            _snapPreview.Y2 = end.Y;
+            RefreshSnapPreview(SnapEndpoint(_snapPoints[^1], target));
             return;
         }
 
@@ -381,44 +386,69 @@ public partial class MainWindow : Window
         _doc.Commit(DrawingService.DrawStepBadge(_doc.Current, point, _stepCounter, _color, TextFontSize));
     }
 
-    // Snap line tool: the first click sets the anchor, the second bakes the snapped line.
-    private void HandleSnapClick(Point point)
+    // Snap line tool: each click adds a vertex, with each new segment snapped relative
+    // to the previous vertex. A double-click (or Enter) finishes; Escape cancels.
+    private void HandleSnapClick(Point point, bool finish)
     {
         if (_doc.Current == null)
             return;
 
-        if (_snapAnchor == null)
+        if (finish)
         {
-            _snapAnchor = point;
-            _snapPreview = new Line
+            FinishSnapLine();
+            return;
+        }
+
+        if (_snapPoints.Count == 0)
+        {
+            _snapPoints.Add(point);
+            _snapPolyline = new Polyline
             {
                 Stroke = new SolidColorBrush(_color),
                 StrokeThickness = Size,
+                StrokeLineJoin = PenLineJoin.Round,
                 StrokeStartLineCap = PenLineCap.Round,
-                StrokeEndLineCap = PenLineCap.Round,
-                X1 = point.X,
-                Y1 = point.Y,
-                X2 = point.X,
-                Y2 = point.Y
+                StrokeEndLineCap = PenLineCap.Round
             };
-            Overlay.Children.Add(_snapPreview);
+            Overlay.Children.Add(_snapPolyline);
         }
         else
         {
-            var end = SnapEndpoint(_snapAnchor.Value, point);
-            _doc.Commit(DrawingService.DrawLine(_doc.Current, _snapAnchor.Value, end, _color, Size));
-            CancelSnapLine();
+            _snapPoints.Add(SnapEndpoint(_snapPoints[^1], point));
         }
+
+        RefreshSnapPreview(null);
+    }
+
+    // Bakes the finished multi-segment line, if it has at least one real segment.
+    private void FinishSnapLine()
+    {
+        if (_snapPoints.Count >= 2 && _doc.Current != null)
+            _doc.Commit(DrawingService.DrawStroke(_doc.Current, _snapPoints, _color, Size));
+        CancelSnapLine();
     }
 
     private void CancelSnapLine()
     {
-        if (_snapPreview != null)
+        if (_snapPolyline != null)
         {
-            Overlay.Children.Remove(_snapPreview);
-            _snapPreview = null;
+            Overlay.Children.Remove(_snapPolyline);
+            _snapPolyline = null;
         }
-        _snapAnchor = null;
+        _snapPoints.Clear();
+    }
+
+    // Rebuilds the preview from the confirmed vertices plus an optional live cursor point.
+    private void RefreshSnapPreview(Point? live)
+    {
+        if (_snapPolyline == null)
+            return;
+
+        _snapPolyline.Points.Clear();
+        foreach (var vertex in _snapPoints)
+            _snapPolyline.Points.Add(vertex);
+        if (live.HasValue)
+            _snapPolyline.Points.Add(live.Value);
     }
 
     // Snaps the line direction to the nearest multiple of the chosen angle, keeping its length.

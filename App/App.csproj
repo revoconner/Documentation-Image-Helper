@@ -8,6 +8,14 @@
     <UseWPF>true</UseWPF>
     <RootNamespace>DocumentationImageHelper</RootNamespace>
     <AssemblyName>DocumentationImageHelper</AssemblyName>
+    <ApplicationIcon>..\markup.ico</ApplicationIcon>
   </PropertyGroup>
+
+  <!-- The icon lives at the repo root; link it in so the window can load it as a resource. -->
+  <ItemGroup>
+    <Resource Include="..\markup.ico">
+      <Link>markup.ico</Link>
+    </Resource>
+  </ItemGroup>
 
 </Project>
