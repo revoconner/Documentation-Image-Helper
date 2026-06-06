@@ -565,7 +565,7 @@ public partial class MainWindow : Window
             Padding = new Thickness(0),
             FontFamily = new FontFamily("Segoe UI"),
             FontSize = TextFontSize,
-            AcceptsReturn = false,
+            AcceptsReturn = true,
             Tag = origin
         };
 
@@ -573,16 +573,17 @@ public partial class MainWindow : Window
         Canvas.SetTop(box, origin.Y);
 
         box.LostKeyboardFocus += (_, _) => CommitActiveText();
-        box.KeyDown += OnTextBoxKeyDown;
+        box.PreviewKeyDown += OnTextBoxPreviewKeyDown;
 
         Overlay.Children.Add(box);
         _activeTextBox = box;
         box.Focus();
     }
 
-    private void OnTextBoxKeyDown(object sender, KeyEventArgs e)
+    private void OnTextBoxPreviewKeyDown(object sender, KeyEventArgs e)
     {
-        if (e.Key == Key.Enter)
+        // Ctrl+Enter confirms the text; a plain Enter falls through to insert a new line.
+        if (e.Key == Key.Enter && (Keyboard.Modifiers & ModifierKeys.Control) != 0)
         {
             CommitActiveText();
             e.Handled = true;
