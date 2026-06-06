@@ -31,6 +31,13 @@ public partial class MainWindow : Window
     // Text entry state.
     private TextBox? _activeTextBox;
 
+    // Steps tool counter; incremented on each Shift+click, reset when Shift is released.
+    private int _stepCounter;
+
+    // Snap line tool two-click state.
+    private Point? _snapAnchor;
+    private Line? _snapPreview;
+
     // Middle-button panning state.
     private bool _panning;
     private Point _panStart;
@@ -40,17 +47,23 @@ public partial class MainWindow : Window
     /// <summary>The line and shape outline thickness taken from the toolbar slider.</summary>
     private double Size => SizeSlider.Value;
 
-    /// <summary>The font size for the text tool, taken from its own toolbar dropdown.</summary>
+    /// <summary>The font size for the text and steps tools, from the font dropdown.</summary>
     private double TextFontSize =>
         double.TryParse((FontSizeCombo.SelectedItem as ComboBoxItem)?.Content?.ToString(), out var value)
             ? value
             : 24;
 
+    /// <summary>The angle increment in degrees that the snap line tool snaps to.</summary>
+    private double SnapAngle =>
+        double.TryParse((SnapAngleCombo.SelectedItem as ComboBoxItem)?.Content?.ToString(), out var value)
+            ? value
+            : 45;
+
     public MainWindow()
     {
         InitializeComponent();
 
-        _toolButtons.AddRange(new[] { TextTool, LineTool, RectTool, CircleTool, OvalTool, CropTool });
+        _toolButtons.AddRange(new[] { TextTool, LineTool, RectTool, CircleTool, OvalTool, CropTool, StepsTool, SnapLineTool });
 
         _doc.Changed += (_, _) => RefreshFromDocument();
         RefreshFromDocument();
@@ -85,6 +98,7 @@ public partial class MainWindow : Window
     private void PasteFromClipboard()
     {
         CommitActiveText();
+        CancelSnapLine();
 
         var image = ClipboardService.TryGetImage();
         if (image == null)
@@ -101,12 +115,14 @@ public partial class MainWindow : Window
     private void OnUndoClick(object sender, RoutedEventArgs e)
     {
         CommitActiveText();
+        CancelSnapLine();
         _doc.Undo();
     }
 
     private void OnRedoClick(object sender, RoutedEventArgs e)
     {
         CommitActiveText();
+        CancelSnapLine();
         _doc.Redo();
     }
 
@@ -125,6 +141,7 @@ public partial class MainWindow : Window
             return;
 
         CommitActiveText();
+        CancelSnapLine();
 
         // Keep the tool buttons mutually exclusive.
         foreach (var other in _toolButtons)
@@ -148,9 +165,9 @@ public partial class MainWindow : Window
         var name = (ColorCombo.SelectedItem as ComboBoxItem)?.Content?.ToString();
         _color = name switch
         {
-            "Red" => Colors.Red,
-            "Green" => Colors.Green,
-            "Blue" => Colors.Blue,
+            "Red" => Color.FromRgb(255, 0, 0),
+            "Green" => Color.FromRgb(0, 255, 0),
+            "Blue" => Color.FromRgb(0, 0, 255),
             "White" => Colors.White,
             "Black" => Colors.Black,
             _ => _color
@@ -164,6 +181,14 @@ public partial class MainWindow : Window
         // While typing, let the text box handle its own keys.
         if (_activeTextBox != null)
             return;
+
+        // Escape cancels a pending snap line.
+        if (e.Key == Key.Escape)
+        {
+            CancelSnapLine();
+            e.Handled = true;
+            return;
+        }
 
         if (Keyboard.Modifiers != ModifierKeys.Control)
             return;
@@ -190,6 +215,13 @@ public partial class MainWindow : Window
         }
     }
 
+    private void OnWindowKeyUp(object sender, KeyEventArgs e)
+    {
+        // Releasing Shift restarts the steps tool numbering at 1 on the next click.
+        if (e.Key == Key.LeftShift || e.Key == Key.RightShift)
+            _stepCounter = 0;
+    }
+
     // Canvas drawing
 
     private void OnOverlayMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -199,11 +231,21 @@ public partial class MainWindow : Window
 
         var point = ClampToImage(e.GetPosition(Overlay));
 
-        if (_tool == ToolType.Text)
+        // Click-based tools do not use a drag gesture.
+        switch (_tool)
         {
-            BeginTextEntry(point);
-            e.Handled = true;
-            return;
+            case ToolType.Text:
+                BeginTextEntry(point);
+                e.Handled = true;
+                return;
+            case ToolType.Steps:
+                AddStepBadge(point);
+                e.Handled = true;
+                return;
+            case ToolType.SnapLine:
+                HandleSnapClick(point);
+                e.Handled = true;
+                return;
         }
 
         _drawing = true;
@@ -217,6 +259,16 @@ public partial class MainWindow : Window
 
     private void OnOverlayMouseMove(object sender, MouseEventArgs e)
     {
+        // Snap line shows a live preview between its two clicks (no drag involved).
+        if (_tool == ToolType.SnapLine && _snapAnchor != null && _snapPreview != null)
+        {
+            var target = ClampToImage(e.GetPosition(Overlay));
+            var end = SnapEndpoint(_snapAnchor.Value, target);
+            _snapPreview.X2 = end.X;
+            _snapPreview.Y2 = end.Y;
+            return;
+        }
+
         if (!_drawing || _preview == null)
             return;
 
@@ -317,6 +369,70 @@ public partial class MainWindow : Window
             return null;
 
         return DrawingService.Crop(source, new Int32Rect(x, y, w, h));
+    }
+
+    // Steps tool: while Shift is held, each click drops the next number in sequence.
+    private void AddStepBadge(Point point)
+    {
+        if ((Keyboard.Modifiers & ModifierKeys.Shift) == 0 || _doc.Current == null)
+            return;
+
+        _stepCounter++;
+        _doc.Commit(DrawingService.DrawStepBadge(_doc.Current, point, _stepCounter, _color, TextFontSize));
+    }
+
+    // Snap line tool: the first click sets the anchor, the second bakes the snapped line.
+    private void HandleSnapClick(Point point)
+    {
+        if (_doc.Current == null)
+            return;
+
+        if (_snapAnchor == null)
+        {
+            _snapAnchor = point;
+            _snapPreview = new Line
+            {
+                Stroke = new SolidColorBrush(_color),
+                StrokeThickness = Size,
+                StrokeStartLineCap = PenLineCap.Round,
+                StrokeEndLineCap = PenLineCap.Round,
+                X1 = point.X,
+                Y1 = point.Y,
+                X2 = point.X,
+                Y2 = point.Y
+            };
+            Overlay.Children.Add(_snapPreview);
+        }
+        else
+        {
+            var end = SnapEndpoint(_snapAnchor.Value, point);
+            _doc.Commit(DrawingService.DrawLine(_doc.Current, _snapAnchor.Value, end, _color, Size));
+            CancelSnapLine();
+        }
+    }
+
+    private void CancelSnapLine()
+    {
+        if (_snapPreview != null)
+        {
+            Overlay.Children.Remove(_snapPreview);
+            _snapPreview = null;
+        }
+        _snapAnchor = null;
+    }
+
+    // Snaps the line direction to the nearest multiple of the chosen angle, keeping its length.
+    private Point SnapEndpoint(Point anchor, Point target)
+    {
+        double dx = target.X - anchor.X;
+        double dy = target.Y - anchor.Y;
+        double length = Math.Sqrt(dx * dx + dy * dy);
+        if (length < 0.0001)
+            return anchor;
+
+        double step = SnapAngle * Math.PI / 180.0;
+        double snapped = Math.Round(Math.Atan2(dy, dx) / step) * step;
+        return new Point(anchor.X + length * Math.Cos(snapped), anchor.Y + length * Math.Sin(snapped));
     }
 
     // Live preview helpers

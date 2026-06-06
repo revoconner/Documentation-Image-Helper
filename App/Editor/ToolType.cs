@@ -22,5 +22,11 @@ public enum ToolType
     Oval,
 
     /// <summary>Drag a region to crop the image down to.</summary>
-    Crop
+    Crop,
+
+    /// <summary>Hold Shift and click to drop auto-incrementing numbered step badges.</summary>
+    Steps,
+
+    /// <summary>Click a start then an end point; the line angle snaps to a chosen increment.</summary>
+    SnapLine
 }

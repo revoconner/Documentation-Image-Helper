@@ -66,6 +66,31 @@ public static class DrawingService
             dc.DrawText(formatted, origin);
         });
 
+    /// <summary>
+    /// Bakes a numbered step badge: a filled circle in the chosen colour with the
+    /// number centred inside it. The circle size scales with the font size so the
+    /// number always fits, and the number colour auto-contrasts the fill.
+    /// </summary>
+    public static BitmapSource DrawStepBadge(BitmapSource source, Point center, int number, Color color, double fontSize)
+        => BakeOnTop(source, dc =>
+        {
+            var label = new FormattedText(
+                number.ToString(CultureInfo.InvariantCulture),
+                CultureInfo.CurrentCulture,
+                FlowDirection.LeftToRight,
+                new Typeface(new FontFamily("Segoe UI"), FontStyles.Normal, FontWeights.Bold, FontStretches.Normal),
+                fontSize,
+                new SolidColorBrush(ContrastColor(color)),
+                1.0);
+
+            // Radius proportional to the font size, but grown enough to enclose
+            // multi-digit numbers with a little padding.
+            double radius = Math.Max(fontSize * 0.8, Math.Max(label.Width, label.Height) / 2 + fontSize * 0.35);
+
+            dc.DrawEllipse(new SolidColorBrush(color), null, center, radius, radius);
+            dc.DrawText(label, new Point(center.X - label.Width / 2, center.Y - label.Height / 2));
+        });
+
     /// <summary>Returns a cropped copy of the source restricted to the given region.</summary>
     public static BitmapSource Crop(BitmapSource source, Int32Rect region)
     {
@@ -97,6 +122,13 @@ public static class DrawingService
         target.Render(visual);
         target.Freeze();
         return target;
+    }
+
+    // Picks black or white text depending on how light the badge fill is.
+    private static Color ContrastColor(Color fill)
+    {
+        double luminance = 0.299 * fill.R + 0.587 * fill.G + 0.114 * fill.B;
+        return luminance > 140 ? Colors.Black : Colors.White;
     }
 
     // A rounded pen so strokes and shape corners look smooth rather than blocky.
