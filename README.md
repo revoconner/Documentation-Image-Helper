@@ -10,7 +10,7 @@ Take a screenshot, paste the image into the app, mark it, copy it and the edited
 - **Undo / Redo** — Step backwards or forwards through your edits (`Ctrl+Z` / `Ctrl+Y`).
 - **Color** — Sets the color used by every drawing tool: Red, Green, Blue, White or Black.
 - **Width** — Slider that sets the thickness of lines and shape outlines.
-- **Text** — Click on the image to place text, type, then press `Enter` to confirm or `Esc` to cancel.
+- **Text** — Click on the image to place text, type, then press `Ctrl+Enter` to confirm or `Esc` to cancel.
   - **Font** — The dropdown beside it sets the text size.
 - **Line** — Hold the left mouse button and drag to draw freehand. Hold `Shift` while dragging to draw a straight line instead.
 - **Rectangle** — Drag from one corner to the opposite corner to draw a rectangle outline.
